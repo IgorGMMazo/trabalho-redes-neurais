@@ -225,8 +225,6 @@ __marimo__/
 *.npy
 *.npz
 
-# Dataset de imagens (ignorado por ser pesado)
-dataset/
 
 # Diretórios de resultados e logs (comentados para manter os CSVs/PNGs sob versionamento)
 # results/
