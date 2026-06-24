@@ -231,5 +231,3 @@ runs/
 outputs/
 logs/
 
-# Dataset (imagens não devem ir para o git)
-dataset/
