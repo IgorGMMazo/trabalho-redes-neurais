@@ -1,0 +1,2 @@
+subset,run_index,seed,epoch,train_loss,test_accuracy,test_precision,epoch_time_sec
+subset_1%,0,42,1,2.74448,0.1,0.01,3.92
