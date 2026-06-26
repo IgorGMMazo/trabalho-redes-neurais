@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches e Checkpoints
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Ambientes Virtuais (Virtual Environments)
+venv/
+.venv/
+env/
+
+# Configurações de IDEs (VS Code, PyCharm, etc.)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Datasets e arquivos pesados (não devem subir para o Git)
+dataset.zip
+
+# Backup do chat
+chat_backup.md
