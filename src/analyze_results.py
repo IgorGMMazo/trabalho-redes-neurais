@@ -270,8 +270,8 @@ def generate_heatmap(df: pd.DataFrame, output_path: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Analyze scaling law results from training CSV.")
-    p.add_argument("--csv-file",    type=str, default="results/training_results.csv")
-    p.add_argument("--output-plot", type=str, default="results/scaling_law_plot.png")
+    p.add_argument("--csv-file",    type=str, default="resultados/training_results.csv")
+    p.add_argument("--output-plot", type=str, default="resultados/scaling_law_plot.png")
     p.add_argument("--no-plot",     action="store_true", help="Skip plot generation.")
     return p.parse_args()
 

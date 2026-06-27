@@ -277,7 +277,7 @@ def parse_args() -> argparse.Namespace:
         description="Train width-scaled ResNet-18 variants under a fixed step budget."
     )
     p.add_argument("--data-dir",        type=str,   default="dataset/preprocessed")
-    p.add_argument("--output-csv",      type=str,   default="results/training_results.csv")
+    p.add_argument("--output-csv",      type=str,   default="resultados/training_results.csv")
     p.add_argument("--total-steps",     type=int,   default=10_000,
                    help="Fixed gradient-step budget per run (§2.3).")
     p.add_argument("--batch-size",      type=int,   default=64)
@@ -376,14 +376,19 @@ def main() -> None:
         print(f"Canais : stem={channels[0]} L1={channels[1]} L2={channels[2]} "
               f"L3={channels[3]} L4={channels[4]}")
 
-        # Build model once with fixed seed; save init state for all data-volume runs (§2.3)
-        set_seed(seed)
-        ref_model = ScaledResNet18(channels=channels)
-        apply_xavier_init(ref_model)
-        n_params  = count_parameters(ref_model)
+        # Load init weights from checkpoint (herança de pesos)
+        ckpt_path = Path("checkpoints/init") / f"init_{model_size}pct.pt"
+        if not ckpt_path.exists():
+            print(f"\n[ERROR] Checkpoint {ckpt_path} não encontrado. Rode init_weights.py primeiro.")
+            continue
+
+        ckpt       = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        init_state = ckpt["state_dict"]
+
+        tmp_model  = ScaledResNet18(channels=channels)
+        n_params   = count_parameters(tmp_model)
+        del tmp_model
         print(f"Params : {n_params:,}  ({n_params / 11_700_000 * 100:.1f}% of full ResNet-18)")
-        init_state = {k: v.clone() for k, v in ref_model.state_dict().items()}
-        del ref_model
 
         for subset_pct in subset_pcts:
             run_num   += 1
