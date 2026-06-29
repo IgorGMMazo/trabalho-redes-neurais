@@ -28,14 +28,13 @@ from torchvision import transforms
 from sklearn.metrics import f1_score, precision_score
 from tqdm import tqdm
 
-
 # ── Architecture §2.2 ────────────────────────────────────────────────────────
 
 MODEL_CONFIGS: Dict[float, Dict] = {
-    12.5: {"alpha": 0.35, "channels": [22,  22,  45,  90,  181]},
-    25.0: {"alpha": 0.50, "channels": [32,  32,  64,  128, 256]},
-    50.0: {"alpha": 0.71, "channels": [45,  45,  90,  181, 362]},
-   100.0: {"alpha": 1.00, "channels": [64,  64,  128, 256, 512]},
+    12.5: {"alpha": 0.35, "channels": [22, 22, 45, 90, 181]},
+    25.0: {"alpha": 0.50, "channels": [32, 32, 64, 128, 256]},
+    50.0: {"alpha": 0.71, "channels": [45, 45, 90, 181, 362]},
+    100.0: {"alpha": 1.00, "channels": [64, 64, 128, 256, 512]},
 }
 
 DEFAULT_SEEDS: Dict[float, int] = {12.5: 42, 25.0: 43, 50.0: 44, 100.0: 45}
@@ -47,10 +46,10 @@ class BasicBlock(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, stride: int = 1):
         super().__init__()
         self.conv1 = nn.Conv2d(in_ch, out_ch, 3, stride=stride, padding=1, bias=False)
-        self.bn1   = nn.BatchNorm2d(out_ch)
+        self.bn1 = nn.BatchNorm2d(out_ch)
         self.conv2 = nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False)
-        self.bn2   = nn.BatchNorm2d(out_ch)
-        self.relu  = nn.ReLU(inplace=True)
+        self.bn2 = nn.BatchNorm2d(out_ch)
+        self.relu = nn.ReLU(inplace=True)
         self.downsample: Optional[nn.Sequential] = None
         if stride != 1 or in_ch != out_ch:
             self.downsample = nn.Sequential(
@@ -86,12 +85,12 @@ class ScaledResNet18(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(3, stride=2, padding=1),
         )
-        self.layer1 = _make_layer(s,  c1, num_blocks=2)
+        self.layer1 = _make_layer(s, c1, num_blocks=2)
         self.layer2 = _make_layer(c1, c2, num_blocks=2, stride=2)
         self.layer3 = _make_layer(c2, c3, num_blocks=2, stride=2)
         self.layer4 = _make_layer(c3, c4, num_blocks=2, stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc      = nn.Linear(c4, num_classes)
+        self.fc = nn.Linear(c4, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.stem(x)
@@ -133,17 +132,17 @@ class CachedGPULoader:
     """
 
     def __init__(
-        self,
-        folder_dataset: ImageFolder,
-        device: torch.device,
-        transform: transforms.Compose,
-        batch_size: int,
-        shuffle: bool = True,
-        num_load_workers: int = 8,
+            self,
+            folder_dataset: ImageFolder,
+            device: torch.device,
+            transform: transforms.Compose,
+            batch_size: int,
+            shuffle: bool = True,
+            num_load_workers: int = 8,
     ):
-        self.device     = device
+        self.device = device
         self.batch_size = batch_size
-        self.shuffle    = shuffle
+        self.shuffle = shuffle
         n = len(folder_dataset)
 
         # Load images in parallel using threads (I/O bound, GIL released)
@@ -153,7 +152,7 @@ class CachedGPULoader:
             return transform(img), label
 
         tensors: List[torch.Tensor] = [None] * n  # type: ignore
-        labels:  List[int]          = [0]   * n
+        labels: List[int] = [0] * n
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_load_workers) as ex:
             futures = {ex.submit(load_one, item): i
@@ -213,9 +212,9 @@ def set_seed(seed: int) -> None:
 # ── LR schedule: linear warmup + cosine annealing to 0 (§2.3) ───────────────
 
 def get_lr_scheduler(
-    optimizer: optim.Optimizer,
-    total_steps: int,
-    warmup_fraction: float = 0.05,
+        optimizer: optim.Optimizer,
+        total_steps: int,
+        warmup_fraction: float = 0.05,
 ) -> optim.lr_scheduler.LambdaLR:
     warmup_steps = max(1, int(total_steps * warmup_fraction))
 
@@ -232,13 +231,13 @@ def get_lr_scheduler(
 
 @torch.no_grad()
 def evaluate(
-    model: nn.Module,
-    test_loader: CachedGPULoader,
-    use_amp: bool,
+        model: nn.Module,
+        test_loader: CachedGPULoader,
+        use_amp: bool,
 ) -> Tuple[float, float, float]:
     """Returns (accuracy, f1_macro, precision_macro). Data is already on VRAM."""
     model.eval()
-    all_preds:  List[int] = []
+    all_preds: List[int] = []
     all_labels: List[int] = []
 
     for inputs, labels in test_loader:
@@ -248,14 +247,14 @@ def evaluate(
         all_preds.extend(preds.cpu().tolist())
         all_labels.extend(labels.cpu().tolist())
 
-    preds_arr  = np.array(all_preds,  dtype=np.int32)
+    preds_arr = np.array(all_preds, dtype=np.int32)
     labels_arr = np.array(all_labels, dtype=np.int32)
 
     if len(labels_arr) == 0:
         return 0.0, 0.0, 0.0
 
-    accuracy  = float((preds_arr == labels_arr).mean())
-    f1        = float(f1_score(labels_arr, preds_arr, average="macro", zero_division=0.0))
+    accuracy = float((preds_arr == labels_arr).mean())
+    f1 = float(f1_score(labels_arr, preds_arr, average="macro", zero_division=0.0))
     precision = float(precision_score(labels_arr, preds_arr, average="macro", zero_division=0.0))
     return accuracy, f1, precision
 
@@ -276,22 +275,22 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Train width-scaled ResNet-18 variants under a fixed step budget."
     )
-    p.add_argument("--data-dir",        type=str,   default="dataset/preprocessed")
-    p.add_argument("--output-csv",      type=str,   default="resultados/training_results.csv")
-    p.add_argument("--total-steps",     type=int,   default=10_000,
+    p.add_argument("--data-dir", type=str, default="dataset/preprocessed")
+    p.add_argument("--output-csv", type=str, default="resultados/training_results.csv")
+    p.add_argument("--total-steps", type=int, default=10_000,
                    help="Fixed gradient-step budget per run (§2.3).")
-    p.add_argument("--batch-size",      type=int,   default=64)
-    p.add_argument("--lr",              type=float, default=2e-3)
-    p.add_argument("--weight-decay",    type=float, default=1e-4)
+    p.add_argument("--batch-size", type=int, default=64)
+    p.add_argument("--lr", type=float, default=2e-3)
+    p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--warmup-fraction", type=float, default=0.05)
-    p.add_argument("--log-every",       type=int,   default=500)
-    p.add_argument("--load-workers",    type=int,   default=8,
+    p.add_argument("--log-every", type=int, default=500)
+    p.add_argument("--load-workers", type=int, default=8,
                    help="Threads used for parallel image loading into VRAM cache.")
-    p.add_argument("--model-sizes",     type=str,   default="12.5,25,50,100")
-    p.add_argument("--subsets",         type=str,   default="1,2,5,10,20,50,100")
-    p.add_argument("--model-seeds",     type=str,   default="",
+    p.add_argument("--model-sizes", type=str, default="12.5,25,50,100")
+    p.add_argument("--subsets", type=str, default="1,2,5,10,20,50,100")
+    p.add_argument("--model-seeds", type=str, default="",
                    help="Comma-separated seeds per model size. Defaults: 42,43,44,45.")
-    p.add_argument("--no-amp",          action="store_true",
+    p.add_argument("--no-amp", action="store_true",
                    help="Disable Automatic Mixed Precision.")
     return p.parse_args()
 
@@ -315,12 +314,12 @@ def main() -> None:
     print(f"  Estratégia : dataset cacheado na VRAM (zero cópia RAM→VRAM por step)")
     print("=" * 70)
 
-    data_dir   = Path(args.data_dir)
+    data_dir = Path(args.data_dir)
     output_csv = Path(args.output_csv)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
 
     model_sizes = [float(x) for x in args.model_sizes.split(",")]
-    subset_pcts = [int(x)   for x in args.subsets.split(",")]
+    subset_pcts = [int(x) for x in args.subsets.split(",")]
 
     if args.model_seeds:
         raw = [int(x) for x in args.model_seeds.split(",")]
@@ -358,20 +357,20 @@ def main() -> None:
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
         csv.writer(f).writerow(csv_header)
 
-    scaler     = torch.amp.GradScaler(device=device.type, enabled=use_amp)
+    scaler = torch.amp.GradScaler(device=device.type, enabled=use_amp)
     total_runs = len(model_sizes) * len(subset_pcts)
-    run_num    = 0
+    run_num = 0
 
     for model_size in model_sizes:
         if model_size not in MODEL_CONFIGS:
             print(f"\n[WARNING] No config for model_size={model_size}%. Skipping.")
             continue
 
-        cfg      = MODEL_CONFIGS[model_size]
+        cfg = MODEL_CONFIGS[model_size]
         channels = cfg["channels"]
-        seed     = seeds_map[model_size]
+        seed = seeds_map[model_size]
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"MODEL {model_size}%  (alpha={cfg['alpha']}, seed={seed})")
         print(f"Canais : stem={channels[0]} L1={channels[1]} L2={channels[2]} "
               f"L3={channels[3]} L4={channels[4]}")
@@ -382,17 +381,17 @@ def main() -> None:
             print(f"\n[ERROR] Checkpoint {ckpt_path} não encontrado. Rode init_weights.py primeiro.")
             continue
 
-        ckpt       = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=True)
         init_state = ckpt["state_dict"]
 
-        tmp_model  = ScaledResNet18(channels=channels)
-        n_params   = count_parameters(tmp_model)
+        tmp_model = ScaledResNet18(channels=channels)
+        n_params = count_parameters(tmp_model)
         del tmp_model
         print(f"Params : {n_params:,}  ({n_params / 11_700_000 * 100:.1f}% of full ResNet-18)")
 
         for subset_pct in subset_pcts:
-            run_num   += 1
-            train_dir  = data_dir / f"subset_{subset_pct}%" / "train"
+            run_num += 1
+            train_dir = data_dir / f"subset_{subset_pct}%" / "train"
 
             if not train_dir.exists():
                 print(f"\n  [WARNING] {train_dir} not found. Skipping.")
@@ -422,10 +421,15 @@ def main() -> None:
             criterion = nn.CrossEntropyLoss()
 
             model.train()
-            data_gen     = infinite_cached(train_loader)
+            data_gen = infinite_cached(train_loader)
             running_loss = 0.0
-            running_n    = 0
-            t_start      = time.time()
+            running_n = 0
+            t_start = time.time()
+
+            # --- ADICIONADO: Variáveis para Early Stopping ---
+            prev_acc = 0.0
+            min_delta = 0.01  # Representa 1% de melhoria mínima exigida
+            # -------------------------------------------------
 
             pbar = tqdm(
                 range(1, args.total_steps + 1),
@@ -448,13 +452,13 @@ def main() -> None:
                 scheduler.step()
 
                 running_loss += loss.item() * inputs.size(0)
-                running_n    += inputs.size(0)
+                running_n += inputs.size(0)
 
                 if step % args.log_every == 0 or step == args.total_steps:
                     avg_loss = running_loss / running_n
                     acc, f1, prec = evaluate(model, test_loader, use_amp)
-                    elapsed   = time.time() - t_start
-                    err_rate  = 1.0 - acc
+                    elapsed = time.time() - t_start
+                    err_rate = 1.0 - acc
 
                     pbar.write(
                         f"    step {step:>6}/{args.total_steps}  "
@@ -469,8 +473,20 @@ def main() -> None:
                             round(f1, 5), round(prec, 5), round(elapsed, 2),
                         ])
 
+                    # --- ADICIONADO: Lógica de Parada Antecipada ---
+                    if step > args.log_every:
+                        melhoria = acc - prev_acc
+                        if melhoria < min_delta:
+                            pbar.write(
+                                f"    [Early Stopping] Treinamento parado no step {step}. Melhoria de apenas {melhoria * 100:.2f}% (menor que o exigido de 1%).")
+                            break  # Interrompe o for loop deste modelo/subset
+
+                    # Atualiza a acurácia anterior para a próxima comparação
+                    prev_acc = acc
+                    # -----------------------------------------------
+
                     running_loss = 0.0
-                    running_n    = 0
+                    running_n = 0
                     model.train()
 
             pbar.close()
@@ -479,7 +495,7 @@ def main() -> None:
             train_loader.free()
             del model, optimizer, scheduler
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"[SUCCESS] {run_num}/{total_runs} runs complete.")
     print(f"Resultados : {output_csv.resolve()}")
     print("=" * 70)
