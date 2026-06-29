@@ -277,7 +277,7 @@ def parse_args() -> argparse.Namespace:
         description="Train width-scaled ResNet-18 variants under a fixed step budget."
     )
     p.add_argument("--data-dir",        type=str,   default="dataset/preprocessed")
-    p.add_argument("--output-csv",      type=str,   default="resultados/training_results.csv")
+    p.add_argument("--output-csv",      type=str,   default="resultados_earlustop/training_results.csv")
     p.add_argument("--total-steps",     type=int,   default=10_000,
                    help="Fixed gradient-step budget per run (§2.3).")
     p.add_argument("--batch-size",      type=int,   default=64)
@@ -293,6 +293,12 @@ def parse_args() -> argparse.Namespace:
                    help="Comma-separated seeds per model size. Defaults: 42,43,44,45.")
     p.add_argument("--no-amp",          action="store_true",
                    help="Disable Automatic Mixed Precision.")
+    p.add_argument("--save-dir",        type=str,   default="checkpoints/best",
+                   help="Diretório para salvar o melhor modelo de cada run.")
+    p.add_argument("--patience",        type=int,   default=3,
+                   help="Avaliações consecutivas sem ganho >= min-delta antes de parar.")
+    p.add_argument("--min-delta",       type=float, default=0.01,
+                   help="Ganho mínimo de accuracy para resetar o early stopping (padrão 1%%).")
     return p.parse_args()
 
 
@@ -318,6 +324,9 @@ def main() -> None:
     data_dir   = Path(args.data_dir)
     output_csv = Path(args.output_csv)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
+
+    save_dir = Path(args.save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
 
     model_sizes = [float(x) for x in args.model_sizes.split(",")]
     subset_pcts = [int(x)   for x in args.subsets.split(",")]
@@ -426,6 +435,8 @@ def main() -> None:
             running_loss = 0.0
             running_n    = 0
             t_start      = time.time()
+            best_acc     = 0.0
+            no_improve   = 0
 
             pbar = tqdm(
                 range(1, args.total_steps + 1),
@@ -456,10 +467,29 @@ def main() -> None:
                     elapsed   = time.time() - t_start
                     err_rate  = 1.0 - acc
 
+                    # Best model checkpoint
+                    if acc > best_acc + args.min_delta:
+                        best_acc   = acc
+                        no_improve = 0
+                        best_path  = save_dir / f"best_M{model_size}pct_D{subset_pct}pct.pt"
+                        torch.save({
+                            "state_dict":  model.state_dict(),
+                            "acc":         acc,
+                            "step":        step,
+                            "model_size":  model_size,
+                            "subset_pct":  subset_pct,
+                            "channels":    channels,
+                        }, best_path)
+                        improved_tag = f"  [BEST {acc:.4f} salvo]"
+                    else:
+                        no_improve  += 1
+                        improved_tag = f"  [sem melhora {no_improve}/{args.patience}]"
+
                     pbar.write(
                         f"    step {step:>6}/{args.total_steps}  "
                         f"loss {avg_loss:.4f}  acc {acc:.4f}  "
                         f"f1 {f1:.4f}  err {err_rate:.4f}  {elapsed:.1f}s"
+                        f"{improved_tag}"
                     )
 
                     with open(output_csv, "a", newline="", encoding="utf-8") as csv_f:
@@ -472,6 +502,14 @@ def main() -> None:
                     running_loss = 0.0
                     running_n    = 0
                     model.train()
+
+                    # Early stopping
+                    if no_improve >= args.patience:
+                        pbar.write(
+                            f"    [EARLY STOP] {no_improve} avaliações sem ganho "
+                            f">= {args.min_delta:.1%}. Melhor acc: {best_acc:.4f}"
+                        )
+                        break
 
             pbar.close()
 
