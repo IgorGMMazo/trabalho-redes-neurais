@@ -1,1 +1,1 @@
-python src/train.py --total-steps 10000
+python src/train.py --subsets 3,7,15,30,70 --total-steps 10000 --output-csv resultados_intermediarios/training_results.csv --patience 3 --min-delta 0.005
