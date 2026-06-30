@@ -225,9 +225,11 @@ __marimo__/
 *.npy
 *.npz
 
-# Diretórios de resultados e logs (gerados pelo pipeline)
-results/
+
+# Diretórios de resultados e logs (comentados para manter os CSVs/PNGs sob versionamento)
+# results/
 runs/
 outputs/
 logs/
+
 

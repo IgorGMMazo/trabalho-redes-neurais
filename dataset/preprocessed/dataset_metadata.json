@@ -1,0 +1,68 @@
+{
+    "original_dataset": {
+        "path": "C:/Users/igorm/Documents/programacao/trabalho-redes-neurais/dataset/orginal/dataset-plantas-com-augmentation",
+        "total_images": 18835,
+        "classes": {
+            "Tomato___Bacterial_spot": 2127,
+            "Tomato___Early_blight": 1000,
+            "Tomato___healthy": 1591,
+            "Tomato___Late_blight": 1909,
+            "Tomato___Leaf_Mold": 1000,
+            "Tomato___Septoria_leaf_spot": 1771,
+            "Tomato___Spider_mites Two-spotted_spider_mite": 1676,
+            "Tomato___Target_Spot": 1404,
+            "Tomato___Tomato_mosaic_virus": 1000,
+            "Tomato___Tomato_Yellow_Leaf_Curl_Virus": 5357
+        }
+    },
+    "balanced_base": {
+        "max_images_per_class": 1000,
+        "total_images": 10000,
+        "classes": {
+            "Tomato___Bacterial_spot": 1000,
+            "Tomato___Early_blight": 1000,
+            "Tomato___healthy": 1000,
+            "Tomato___Late_blight": 1000,
+            "Tomato___Leaf_Mold": 1000,
+            "Tomato___Septoria_leaf_spot": 1000,
+            "Tomato___Spider_mites Two-spotted_spider_mite": 1000,
+            "Tomato___Target_Spot": 1000,
+            "Tomato___Tomato_mosaic_virus": 1000,
+            "Tomato___Tomato_Yellow_Leaf_Curl_Virus": 1000
+        }
+    },
+    "configuration": {
+        "seed": 42,
+        "train_pool_ratio": 0.7,
+        "val_ratio": 0.15,
+        "test_ratio": 0.15,
+        "percentages": [
+            1,
+            2,
+            5,
+            10,
+            20,
+            50,
+            100
+        ]
+    },
+    "fixed_splits": {
+        "val": {
+            "summary": {
+                "total_images": 1500,
+                "classes": {
+                    "Tomato___Bacterial_spot": 150,
+                    "Tomato___Early_blight": 150,
+                    "Tomato___healthy": 150,
+                    "Tomato___Late_blight": 150,
+                    "Tomato___Leaf_Mold": 150,
+                    "Tomato___Septoria_leaf_spot": 150,
+                    "Tomato___Spider_mites Two-spotted_spider_mite": 150,
+                    "Tomato___Target_Spot": 150,
+                    "Tomato___Tomato_mosaic_virus": 150,
+                    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": 150
+                }
+            }
+        }
+    }
+}
