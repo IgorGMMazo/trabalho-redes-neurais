@@ -220,6 +220,8 @@ __marimo__/
 # ── PyTorch / ML ──────────────────────────────────────────────────────────────
 *.pt
 *.pth
+# Exceção: checkpoints de inicialização (pequenos, necessários para reprodutibilidade)
+!checkpoints/init/*.pt
 *.pkl
 *.safetensors
 *.npy
